@@ -27,13 +27,10 @@ export class TutoringsService {
       throw new ForbiddenException('Solo estudiantes pueden solicitar tutoría');
     }
     const start = new Date(dto.startAt);
-    const end = new Date(dto.endAt);
-    if (!(start instanceof Date) || isNaN(+start) || isNaN(+end)) {
-      throw new BadRequestException('Fechas inválidas');
+    if (!(start instanceof Date) || isNaN(+start)) {
+      throw new BadRequestException('Fecha de inicio inválida');
     }
-    if (end <= start) {
-      throw new BadRequestException('endAt debe ser posterior a startAt');
-    }
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
     await this.subjectsService.findOne(dto.subjectId);
 
     return this.dataSource.transaction(async (manager) => {
