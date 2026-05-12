@@ -19,7 +19,7 @@ export class ProfessorAvailability {
   @JoinColumn({ name: 'professor_user_id' })
   professor: User;
 
-  /** 0 = domingo … 6 = sábado (Date.getUTCDay()) */
+  /** 0 = domingo … 6 = sábado (mismo criterio que Date.getDay() en APP_TIMEZONE) */
   @Column({ name: 'day_of_week', type: 'tinyint', unsigned: true })
   dayOfWeek: number;
 

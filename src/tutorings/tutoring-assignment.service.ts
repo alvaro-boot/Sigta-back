@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
+import { addDays, startOfWeek } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { Repository } from 'typeorm';
 import { ProfessorSubject } from '../professor/entities/professor-subject.entity';
 import { ProfessorAvailability } from '../professor/entities/professor-availability.entity';
@@ -8,7 +11,7 @@ import { UserRole } from '../common/enums/user-role.enum';
 import {
   slotCoversRequest,
   timeStringToMinutes,
-  utcDayAndMinutes,
+  zonedDayAndMinutes,
 } from '../common/utils/time.util';
 import { TutoringStatus } from '../common/enums/tutoring-status.enum';
 
@@ -21,7 +24,12 @@ export class TutoringAssignmentService {
     private readonly avRepo: Repository<ProfessorAvailability>,
     @InjectRepository(TutoringRequest)
     private readonly trRepo: Repository<TutoringRequest>,
+    private readonly config: ConfigService,
   ) {}
+
+  private appTimeZone(): string {
+    return this.config.get<string>('APP_TIMEZONE') || 'America/Bogota';
+  }
 
   /** Devuelve professorUserId o null */
   async pickProfessor(
@@ -29,9 +37,11 @@ export class TutoringAssignmentService {
     startAt: Date,
     endAt: Date,
   ): Promise<number | null> {
-    const { dayOfWeek, startMinutes, endMinutes } = utcDayAndMinutes(
+    const tz = this.appTimeZone();
+    const { dayOfWeek, startMinutes, endMinutes } = zonedDayAndMinutes(
       startAt,
       endAt,
+      tz,
     );
     if (endMinutes <= startMinutes) {
       return null;
@@ -67,9 +77,8 @@ export class TutoringAssignmentService {
     }
     if (!candidates.length) return null;
 
-    const weekStart = this.startOfUtcWeek(startAt);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
+    const weekStart = this.startOfAppWeek(startAt, tz);
+    const weekEnd = addDays(weekStart, 7);
 
     const scored = await Promise.all(
       candidates.map(async (professorId) => {
@@ -87,14 +96,10 @@ export class TutoringAssignmentService {
     return scored[0].professorId;
   }
 
-  private startOfUtcWeek(d: Date): Date {
-    const x = new Date(
-      Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
-    );
-    const day = x.getUTCDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    x.setUTCDate(x.getUTCDate() + diff);
-    x.setUTCHours(0, 0, 0, 0);
-    return x;
+  /** Lunes 00:00 en la zona de la app, como instante UTC */
+  private startOfAppWeek(d: Date, timeZone: string): Date {
+    const zoned = toZonedTime(d, timeZone);
+    const mondayWall = startOfWeek(zoned, { weekStartsOn: 1 });
+    return fromZonedTime(mondayWall, timeZone);
   }
 }
