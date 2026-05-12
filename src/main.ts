@@ -6,10 +6,27 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
-  const origin = config.get<string>('FRONTEND_ORIGIN', 'http://localhost:3000');
+  /** CORS permisivo: cualquier origen (refleja el `Origin` de la petición). */
   app.enableCors({
-    origin: origin.split(',').map((s) => s.trim()),
+    origin: true,
     credentials: true,
+    methods: [
+      'GET',
+      'HEAD',
+      'PUT',
+      'PATCH',
+      'POST',
+      'DELETE',
+      'OPTIONS',
+    ],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+    ],
+    exposedHeaders: ['Authorization'],
   });
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   app.useGlobalPipes(
