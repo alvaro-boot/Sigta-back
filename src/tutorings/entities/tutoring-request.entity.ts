@@ -9,6 +9,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Subject } from '../../subjects/entities/subject.entity';
 import { TutoringStatus } from '../../common/enums/tutoring-status.enum';
+import { SessionModality } from '../../common/enums/session-modality.enum';
 
 @Entity('tutoring_requests')
 export class TutoringRequest {
@@ -44,6 +45,26 @@ export class TutoringRequest {
   @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'professor_id' })
   professor: User | null;
+
+  @Column({
+    type: 'enum',
+    enum: SessionModality,
+    default: SessionModality.IN_PERSON,
+  })
+  modality: SessionModality;
+
+  /** Motivo o tema breve (opcional) para que el docente prepare la sesión. */
+  @Column({ name: 'student_topic', type: 'varchar', length: 500, nullable: true })
+  studentTopic: string | null;
+
+  @Column({ name: 'cancelled_at', type: 'datetime', nullable: true })
+  cancelledAt: Date | null;
+
+  @Column({ name: 'cancel_reason', type: 'varchar', length: 500, nullable: true })
+  cancelReason: string | null;
+
+  @Column({ name: 'confirmed_at', type: 'datetime', nullable: true })
+  confirmedAt: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

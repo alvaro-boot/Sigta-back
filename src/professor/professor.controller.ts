@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -15,7 +16,11 @@ import { ProfessorService } from './professor.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../common/enums/user-role.enum';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { AddAvailabilityDto, AddSpecialtyDto } from './dto/professor-profile.dto';
+import {
+  AddAvailabilityDto,
+  AddSpecialtyDto,
+  UpdateProfessorProfileDto,
+} from './dto/professor-profile.dto';
 
 type Authed = Request & { user: { id: number } };
 
@@ -51,6 +56,16 @@ export class ProfessorController {
   @Post('availability')
   addAvailability(@Req() req: Authed, @Body() dto: AddAvailabilityDto) {
     return this.professorService.addAvailability(req.user.id, dto);
+  }
+
+  @Patch('profile')
+  updateProfile(@Req() req: Authed, @Body() dto: UpdateProfessorProfileDto) {
+    return this.professorService.updateProfile(req.user.id, dto);
+  }
+
+  @Get('profile')
+  getMyProfile(@Req() req: Authed) {
+    return this.professorService.getMyPublicProfile(req.user.id);
   }
 
   @Delete('availability/:id')

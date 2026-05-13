@@ -29,6 +29,18 @@ export class User {
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
+  /** Texto libre visible a estudiantes en el directorio (docentes). */
+  @Column({ name: 'profile_bio', type: 'text', nullable: true })
+  profileBio: string | null;
+
+  /** Ubicación u oficina para tutorías presenciales. */
+  @Column({ name: 'office_location', type: 'varchar', length: 255, nullable: true })
+  officeLocation: string | null;
+
+  /** Enlace por defecto para sesiones virtuales (Meet, Teams, etc.). */
+  @Column({ name: 'virtual_meeting_url', type: 'varchar', length: 512, nullable: true })
+  virtualMeetingUrl: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { SessionModality } from '../../common/enums/session-modality.enum';
 
 @Entity('professor_availability')
 export class ProfessorAvailability {
@@ -28,4 +29,11 @@ export class ProfessorAvailability {
 
   @Column({ name: 'end_time', type: 'time' })
   endTime: string;
+
+  @Column({
+    type: 'enum',
+    enum: SessionModality,
+    default: SessionModality.IN_PERSON,
+  })
+  modality: SessionModality;
 }

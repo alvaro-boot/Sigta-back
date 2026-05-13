@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { addDays, startOfWeek } from 'date-fns';
@@ -14,6 +14,7 @@ import {
   zonedDayAndMinutes,
 } from '../common/utils/time.util';
 import { TutoringStatus } from '../common/enums/tutoring-status.enum';
+import { SessionModality } from '../common/enums/session-modality.enum';
 
 @Injectable()
 export class TutoringAssignmentService {
@@ -31,11 +32,67 @@ export class TutoringAssignmentService {
     return this.config.get<string>('APP_TIMEZONE') || 'America/Bogota';
   }
 
+  /** Comprueba que el docente tenga la asignatura y una franja compatible con modalidad y horario. */
+  async assertProfessorCoversRequest(
+    professorUserId: number,
+    subjectId: number,
+    startAt: Date,
+    endAt: Date,
+    modality: SessionModality,
+  ): Promise<void> {
+    const link = await this.psRepo.findOne({
+      where: { professorUserId, subjectId },
+    });
+    if (!link) {
+      throw new BadRequestException(
+        'El profesor seleccionado no ofrece tutoría en esta asignatura',
+      );
+    }
+    const ok = await this.professorCoversSlot(
+      professorUserId,
+      startAt,
+      endAt,
+      modality,
+    );
+    if (!ok) {
+      throw new BadRequestException(
+        'El profesor no tiene disponibilidad en esa fecha, hora y modalidad',
+      );
+    }
+  }
+
+  async professorCoversSlot(
+    professorUserId: number,
+    startAt: Date,
+    endAt: Date,
+    modality: SessionModality,
+  ): Promise<boolean> {
+    const tz = this.appTimeZone();
+    const { dayOfWeek, startMinutes, endMinutes } = zonedDayAndMinutes(
+      startAt,
+      endAt,
+      tz,
+    );
+    if (endMinutes <= startMinutes) {
+      return false;
+    }
+    const avs = await this.avRepo.find({
+      where: { professorUserId, dayOfWeek, modality },
+    });
+    return avs.some((a) => {
+      const sm = timeStringToMinutes(a.startTime);
+      const em = timeStringToMinutes(a.endTime);
+      return slotCoversRequest(sm, em, startMinutes, endMinutes);
+    });
+  }
+
   /** Devuelve professorUserId o null */
   async pickProfessor(
     subjectId: number,
     startAt: Date,
     endAt: Date,
+    modality: SessionModality,
+    preferredProfessorId?: number,
   ): Promise<number | null> {
     const tz = this.appTimeZone();
     const { dayOfWeek, startMinutes, endMinutes } = zonedDayAndMinutes(
@@ -63,16 +120,22 @@ export class TutoringAssignmentService {
     ];
     if (!unique.length) return null;
 
+    if (
+      preferredProfessorId != null &&
+      unique.includes(preferredProfessorId)
+    ) {
+      const prefOk = await this.professorCoversSlot(
+        preferredProfessorId,
+        startAt,
+        endAt,
+        modality,
+      );
+      if (prefOk) return preferredProfessorId;
+    }
+
     const candidates: number[] = [];
     for (const pid of unique) {
-      const avs = await this.avRepo.find({
-        where: { professorUserId: pid, dayOfWeek },
-      });
-      const ok = avs.some((a) => {
-        const sm = timeStringToMinutes(a.startTime);
-        const em = timeStringToMinutes(a.endTime);
-        return slotCoversRequest(sm, em, startMinutes, endMinutes);
-      });
+      const ok = await this.professorCoversSlot(pid, startAt, endAt, modality);
       if (ok) candidates.push(pid);
     }
     if (!candidates.length) return null;
@@ -85,7 +148,12 @@ export class TutoringAssignmentService {
         const count = await this.trRepo
           .createQueryBuilder('t')
           .where('t.professor_id = :professorId', { professorId })
-          .andWhere('t.status = :st', { st: TutoringStatus.AUTO_ASSIGNED })
+          .andWhere('t.status IN (:...sts)', {
+            sts: [
+              TutoringStatus.PENDING_CONFIRMATION,
+              TutoringStatus.CONFIRMED,
+            ],
+          })
           .andWhere('t.start_at >= :ws', { ws: weekStart })
           .andWhere('t.start_at < :we', { we: weekEnd })
           .getCount();
