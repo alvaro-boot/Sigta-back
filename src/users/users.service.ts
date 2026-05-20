@@ -71,7 +71,7 @@ export class UsersService {
       fullName: u.fullName,
       role: u.role,
       whatsappPhone: u.whatsappPhone,
-      whatsappNotifyEnabled: u.whatsappNotifyEnabled,
+      whatsappNotifyEnabled: Boolean(u.whatsappNotifyEnabled),
     };
   }
 
