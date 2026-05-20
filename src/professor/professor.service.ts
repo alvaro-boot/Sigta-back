@@ -24,8 +24,16 @@ export type CatalogProfessorRow = {
   modalities: SessionModality[];
 };
 
+export type CatalogAvailabilitySlot = {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  modality: SessionModality;
+};
+
 export type CatalogProfessorDetail = CatalogProfessorRow & {
   virtualMeetingUrl: string | null;
+  availability: CatalogAvailabilitySlot[];
 };
 
 @Injectable()
@@ -230,6 +238,20 @@ export class ProfessorService {
       name: r.subject.name,
       code: r.subject.code,
     }));
+    const availability = avs
+      .map((a) => ({
+        dayOfWeek: a.dayOfWeek,
+        startTime: a.startTime,
+        endTime: a.endTime,
+        modality: a.modality,
+      }))
+      .sort(
+        (x, y) =>
+          x.dayOfWeek - y.dayOfWeek ||
+          x.startTime.localeCompare(y.startTime) ||
+          x.modality.localeCompare(y.modality),
+      );
+
     return {
       id: u.id,
       fullName: u.fullName,
@@ -238,6 +260,7 @@ export class ProfessorService {
       subjects,
       modalities,
       virtualMeetingUrl: u.virtualMeetingUrl,
+      availability,
     };
   }
 }
