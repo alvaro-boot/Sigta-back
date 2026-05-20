@@ -25,6 +25,8 @@ import { AdminModule } from './admin/admin.module';
         autoLoadEntities: true,
         synchronize: config.get('TYPEORM_SYNC', 'false') === 'true',
         timezone: 'Z',
+        connectTimeout: 15_000,
+        extra: { connectionLimit: 2 },
       }),
       inject: [ConfigService],
     }),
