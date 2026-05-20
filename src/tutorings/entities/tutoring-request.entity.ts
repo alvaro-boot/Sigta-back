@@ -16,14 +16,14 @@ export class TutoringRequest {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'student_id' })
+  @Column({ name: 'student_id', type: 'int' })
   studentId: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'student_id' })
   student: User;
 
-  @Column({ name: 'subject_id' })
+  @Column({ name: 'subject_id', type: 'int' })
   subjectId: number;
 
   @ManyToOne(() => Subject, { onDelete: 'RESTRICT' })
@@ -39,7 +39,7 @@ export class TutoringRequest {
   @Column({ type: 'enum', enum: TutoringStatus })
   status: TutoringStatus;
 
-  @Column({ name: 'professor_id', nullable: true })
+  @Column({ name: 'professor_id', type: 'int', nullable: true })
   professorId: number | null;
 
   @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })

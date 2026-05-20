@@ -15,14 +15,14 @@ export class ProfessorSubject {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'professor_user_id' })
+  @Column({ name: 'professor_user_id', type: 'int' })
   professorUserId: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'professor_user_id' })
   professor: User;
 
-  @Column({ name: 'subject_id' })
+  @Column({ name: 'subject_id', type: 'int' })
   subjectId: number;
 
   @ManyToOne(() => Subject, { onDelete: 'CASCADE' })

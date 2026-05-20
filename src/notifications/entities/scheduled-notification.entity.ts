@@ -13,10 +13,10 @@ export class ScheduledNotification {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'tutoring_request_id', nullable: true })
+  @Column({ name: 'tutoring_request_id', type: 'int', nullable: true })
   tutoringRequestId: number | null;
 
-  @Column({ name: 'recipient_user_id' })
+  @Column({ name: 'recipient_user_id', type: 'int' })
   recipientUserId: number;
 
   @Column({ type: 'varchar', length: 64 })
@@ -28,7 +28,7 @@ export class ScheduledNotification {
   @Column({ name: 'sent_at', type: 'datetime', nullable: true })
   sentAt: Date | null;
 
-  @Column({ default: false })
+  @Column({ type: 'tinyint', width: 1, default: 0 })
   cancelled: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

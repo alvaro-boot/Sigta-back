@@ -13,7 +13,7 @@ export class ProfessorAvailability {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'professor_user_id' })
+  @Column({ name: 'professor_user_id', type: 'int' })
   professorUserId: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

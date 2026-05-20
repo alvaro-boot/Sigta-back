@@ -45,7 +45,7 @@ export class User {
   @Column({ name: 'whatsapp_phone', type: 'varchar', length: 20, nullable: true })
   whatsappPhone: string | null;
 
-  @Column({ name: 'whatsapp_notify_enabled', default: true })
+  @Column({ name: 'whatsapp_notify_enabled', type: 'tinyint', width: 1, default: 1 })
   whatsappNotifyEnabled: boolean;
 
   @CreateDateColumn({ name: 'created_at' })
