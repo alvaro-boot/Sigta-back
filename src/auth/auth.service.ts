@@ -48,6 +48,7 @@ export class AuthService {
       fullName: dto.fullName,
       role: UserRole.STUDENT,
       isActive: true,
+      whatsappPhone: dto.whatsappPhone,
     });
     return this.login({ email: dto.email, password: dto.password });
   }

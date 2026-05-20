@@ -19,14 +19,27 @@ export class UsersService {
     private readonly usersRepo: Repository<User>,
   ) {}
 
+  private resolveWhatsappPhone(raw?: string): string | null {
+    if (!raw?.trim()) return null;
+    const n = normalizeWhatsAppPhone(raw);
+    if (!n) {
+      throw new BadRequestException(
+        'Número de WhatsApp inválido. Use formato colombiano, ej. 3001234567',
+      );
+    }
+    return n;
+  }
+
   async create(dto: CreateUserDto): Promise<User> {
     const hash = await bcrypt.hash(dto.password, 10);
+    const whatsappPhone = this.resolveWhatsappPhone(dto.whatsappPhone);
     const user = this.usersRepo.create({
       email: dto.email.toLowerCase(),
       passwordHash: hash,
       role: dto.role,
       fullName: dto.fullName,
       isActive: dto.isActive ?? true,
+      whatsappPhone,
     });
     return this.usersRepo.save(user);
   }
