@@ -54,8 +54,26 @@ export class TutoringNotificationService {
 
   private async sendToUser(userId: number, body: string): Promise<void> {
     const u = await this.userRepo.findOne({ where: { id: userId } });
-    if (!u?.whatsappNotifyEnabled || !u.whatsappPhone) return;
-    await this.ultraMsg.sendText(u.whatsappPhone, body);
+    if (!u) {
+      this.logger.warn(`WhatsApp: usuario ${userId} no encontrado`);
+      return;
+    }
+    if (!Boolean(u.whatsappNotifyEnabled)) {
+      this.logger.warn(`WhatsApp: usuario ${userId} tiene notificaciones desactivadas`);
+      return;
+    }
+    if (!u.whatsappPhone?.trim()) {
+      this.logger.warn(`WhatsApp: usuario ${userId} sin número guardado`);
+      return;
+    }
+    if (!this.ultraMsg.isConfigured()) {
+      this.logger.warn('WhatsApp: UltraMsg no configurado (ULTRAMSG_* en .env)');
+      return;
+    }
+    const ok = await this.ultraMsg.sendText(u.whatsappPhone, body);
+    if (!ok) {
+      this.logger.warn(`WhatsApp: fallo al enviar a usuario ${userId}`);
+    }
   }
 
   private async sendToAdmins(body: string): Promise<void> {
@@ -63,7 +81,7 @@ export class TutoringNotificationService {
       where: { role: UserRole.ADMIN, isActive: true },
     });
     for (const a of admins) {
-      if (a.whatsappNotifyEnabled && a.whatsappPhone) {
+      if (Boolean(a.whatsappNotifyEnabled) && a.whatsappPhone) {
         await this.ultraMsg.sendText(a.whatsappPhone, body);
       }
     }

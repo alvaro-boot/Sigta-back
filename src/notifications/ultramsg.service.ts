@@ -20,11 +20,12 @@ export class UltraMsgService {
       this.logger.warn('UltraMsg no configurado; mensaje no enviado');
       return false;
     }
-    const to = normalizeWhatsAppPhone(toRaw);
-    if (!to) {
+    const digits = normalizeWhatsAppPhone(toRaw);
+    if (!digits) {
       this.logger.warn(`Teléfono inválido: ${toRaw}`);
       return false;
     }
+    const to = `+${digits}`;
     const instanceId = this.config.get<string>('ULTRAMSG_INSTANCE_ID')!;
     const token = this.config.get<string>('ULTRAMSG_TOKEN')!;
     const base =
@@ -43,8 +44,19 @@ export class UltraMsgService {
         body: params.toString(),
       });
       const text = await res.text();
-      if (!res.ok) {
-        this.logger.error(`UltraMsg ${res.status}: ${text}`);
+      let payload: { sent?: string; error?: string; message?: string } = {};
+      try {
+        payload = JSON.parse(text) as typeof payload;
+      } catch {
+        /* respuesta no JSON */
+      }
+      const apiError =
+        payload.error ||
+        (payload.sent && payload.sent !== 'true' ? payload.message : undefined);
+      if (!res.ok || apiError) {
+        this.logger.error(
+          `UltraMsg ${res.status} → ${to}: ${apiError ?? text}`,
+        );
         return false;
       }
       this.logger.log(`WhatsApp enviado a ${to}`);

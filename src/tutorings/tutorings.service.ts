@@ -123,8 +123,12 @@ export class TutoringsService {
         confirmedAt: null,
       });
       return manager.save(TutoringRequest, row);
-    }).then((saved) => {
-      void this.notifications.onStudentRequestCreated(saved.id);
+    }).then(async (saved) => {
+      try {
+        await this.notifications.onStudentRequestCreated(saved.id);
+      } catch {
+        /* no bloquear la solicitud si falla WhatsApp */
+      }
       return saved;
     });
   }
@@ -214,7 +218,11 @@ export class TutoringsService {
     t.cancelReason = dto.reason?.trim() ? dto.reason.trim() : null;
     t.confirmedAt = null;
     const saved = await this.repo.save(t);
-    void this.notifications.onCancelled(id);
+    try {
+      await this.notifications.onCancelled(id);
+    } catch {
+      /* WhatsApp opcional */
+    }
     return saved;
   }
 
@@ -292,7 +300,11 @@ export class TutoringsService {
     t.status = TutoringStatus.CONFIRMED;
     t.confirmedAt = new Date();
     const saved = await this.repo.save(t);
-    void this.notifications.onProfessorConfirmed(id);
+    try {
+      await this.notifications.onProfessorConfirmed(id);
+    } catch {
+      /* WhatsApp opcional */
+    }
     return saved;
   }
 
@@ -313,7 +325,11 @@ export class TutoringsService {
     t.professorId = null;
     t.confirmedAt = null;
     const saved = await this.repo.save(t);
-    void this.notifications.onUnassignedNeedsAdmin(id);
+    try {
+      await this.notifications.onUnassignedNeedsAdmin(id);
+    } catch {
+      /* WhatsApp opcional */
+    }
     return saved;
   }
 
@@ -361,8 +377,12 @@ export class TutoringsService {
       t.professorId = userId;
       t.status = TutoringStatus.PENDING_CONFIRMATION;
       return manager.save(TutoringRequest, t);
-    }).then((saved) => {
-      void this.notifications.onProfessorClaimed(saved.id);
+    }).then(async (saved) => {
+      try {
+        await this.notifications.onProfessorClaimed(saved.id);
+      } catch {
+        /* WhatsApp opcional */
+      }
       return saved;
     });
   }
