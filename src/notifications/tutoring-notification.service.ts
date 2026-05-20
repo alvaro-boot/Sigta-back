@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -26,10 +27,15 @@ export class TutoringNotificationService {
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     private readonly ultraMsg: UltraMsgService,
-    private readonly scheduler: NotificationSchedulerService,
+    private readonly moduleRef: ModuleRef,
     private readonly adminService: AdminService,
     private readonly config: ConfigService,
   ) {}
+
+  /** Evita dependencia circular con NotificationSchedulerService. */
+  private scheduler(): NotificationSchedulerService {
+    return this.moduleRef.get(NotificationSchedulerService, { strict: false });
+  }
 
   private tz(): string {
     return this.config.get('APP_TIMEZONE', 'America/Bogota');
@@ -88,7 +94,7 @@ export class TutoringNotificationService {
   }
 
   private async cancelReminders(tutoringId: number): Promise<void> {
-    await this.scheduler.cancelForTutoring(tutoringId);
+    await this.scheduler().cancelForTutoring(tutoringId);
   }
 
   /** Tras crear solicitud con docente asignado (pendiente confirmación). */
@@ -109,7 +115,7 @@ export class TutoringNotificationService {
     );
 
     if (t.professorId) {
-      await this.scheduler.schedule({
+      await this.scheduler().schedule({
         tutoringRequestId: t.id,
         recipientUserId: t.studentId,
         type: NotificationType.STUDENT_PROFESSOR_ASSIGNED,
@@ -192,7 +198,7 @@ export class TutoringNotificationService {
   async onProfessorClaimed(tutoringId: number): Promise<void> {
     const t = await this.loadTutoring(tutoringId);
     if (!t?.professorId) return;
-    await this.scheduler.schedule({
+    await this.scheduler().schedule({
       tutoringRequestId: t.id,
       recipientUserId: t.studentId,
       type: NotificationType.STUDENT_PROFESSOR_ASSIGNED,
@@ -245,7 +251,7 @@ export class TutoringNotificationService {
     for (const o of offsets) {
       const sendAt = new Date(start - o.ms);
       if (sendAt.getTime() > now) {
-        await this.scheduler.schedule({
+        await this.scheduler().schedule({
           tutoringRequestId: t.id,
           recipientUserId: t.studentId,
           type: o.type,
@@ -257,7 +263,7 @@ export class TutoringNotificationService {
       for (const o of profOffsets) {
         const sendAt = new Date(start - o.ms);
         if (sendAt.getTime() > now) {
-          await this.scheduler.schedule({
+          await this.scheduler().schedule({
             tutoringRequestId: t.id,
             recipientUserId: t.professorId,
             type: o.type,
