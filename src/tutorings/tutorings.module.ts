@@ -9,6 +9,7 @@ import { TutoringAssignmentService } from './tutoring-assignment.service';
 import { SubjectsModule } from '../subjects/subjects.module';
 import { UsersModule } from '../users/users.module';
 import { AdminModule } from '../admin/admin.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AdminModule } from '../admin/admin.module';
     SubjectsModule,
     UsersModule,
     AdminModule,
+    NotificationsModule,
   ],
   controllers: [TutoringsController],
   providers: [TutoringsService, TutoringAssignmentService],

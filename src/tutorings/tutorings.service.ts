@@ -10,6 +10,7 @@ import { TutoringRequest } from './entities/tutoring-request.entity';
 import { CreateTutoringRequestDto } from './dto/create-tutoring-request.dto';
 import { CancelTutoringDto } from './dto/cancel-tutoring.dto';
 import { RescheduleTutoringDto } from './dto/reschedule-tutoring.dto';
+import { AvailableSlotsQueryDto } from './dto/available-slots-query.dto';
 import { TutoringAssignmentService } from './tutoring-assignment.service';
 import { TutoringStatus } from '../common/enums/tutoring-status.enum';
 import { UserRole } from '../common/enums/user-role.enum';
@@ -17,6 +18,7 @@ import { SubjectsService } from '../subjects/subjects.service';
 import { UsersService } from '../users/users.service';
 import { AdminService } from '../admin/admin.service';
 import { ProfessorSubject } from '../professor/entities/professor-subject.entity';
+import { TutoringNotificationService } from '../notifications/tutoring-notification.service';
 
 const ONE_H_MS = 60 * 60 * 1000;
 
@@ -32,6 +34,7 @@ export class TutoringsService {
     private readonly subjectsService: SubjectsService,
     private readonly usersService: UsersService,
     private readonly adminService: AdminService,
+    private readonly notifications: TutoringNotificationService,
   ) {}
 
   private hoursUntilStart(startAt: Date): number {
@@ -98,10 +101,12 @@ export class TutoringsService {
           dto.modality,
           dto.preferredProfessorId,
         );
-        status =
-          professorId !== null
-            ? TutoringStatus.PENDING_CONFIRMATION
-            : TutoringStatus.UNASSIGNED;
+        if (professorId === null) {
+          throw new BadRequestException(
+            'No hay disponibilidad para esa fecha, hora y modalidad',
+          );
+        }
+        status = TutoringStatus.PENDING_CONFIRMATION;
       }
 
       const row = manager.create(TutoringRequest, {
@@ -118,7 +123,29 @@ export class TutoringsService {
         confirmedAt: null,
       });
       return manager.save(TutoringRequest, row);
+    }).then((saved) => {
+      void this.notifications.onStudentRequestCreated(saved.id);
+      return saved;
     });
+  }
+
+  async listAvailableSlotsForStudent(
+    role: UserRole,
+    query: AvailableSlotsQueryDto,
+  ) {
+    if (role !== UserRole.STUDENT) {
+      throw new ForbiddenException(
+        'Solo estudiantes pueden consultar horarios disponibles',
+      );
+    }
+    await this.subjectsService.findOne(query.subjectId);
+    const slots = await this.assignment.listAvailableSlots(
+      query.subjectId,
+      query.date,
+      query.modality,
+      query.professorId,
+    );
+    return { slots };
   }
 
   async listFor(
@@ -186,7 +213,9 @@ export class TutoringsService {
     t.cancelledAt = new Date();
     t.cancelReason = dto.reason?.trim() ? dto.reason.trim() : null;
     t.confirmedAt = null;
-    return this.repo.save(t);
+    const saved = await this.repo.save(t);
+    void this.notifications.onCancelled(id);
+    return saved;
   }
 
   async rescheduleByStudent(
@@ -262,7 +291,9 @@ export class TutoringsService {
     }
     t.status = TutoringStatus.CONFIRMED;
     t.confirmedAt = new Date();
-    return this.repo.save(t);
+    const saved = await this.repo.save(t);
+    void this.notifications.onProfessorConfirmed(id);
+    return saved;
   }
 
   async releaseByProfessor(userId: number, role: UserRole, id: number) {
@@ -281,7 +312,9 @@ export class TutoringsService {
     t.status = TutoringStatus.UNASSIGNED;
     t.professorId = null;
     t.confirmedAt = null;
-    return this.repo.save(t);
+    const saved = await this.repo.save(t);
+    void this.notifications.onUnassignedNeedsAdmin(id);
+    return saved;
   }
 
   async completeByProfessor(userId: number, role: UserRole, id: number) {
@@ -328,6 +361,9 @@ export class TutoringsService {
       t.professorId = userId;
       t.status = TutoringStatus.PENDING_CONFIRMATION;
       return manager.save(TutoringRequest, t);
+    }).then((saved) => {
+      void this.notifications.onProfessorClaimed(saved.id);
+      return saved;
     });
   }
 }

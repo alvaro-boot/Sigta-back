@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import { TutoringsService } from './tutorings.service';
 import { CreateTutoringRequestDto } from './dto/create-tutoring-request.dto';
 import { CancelTutoringDto } from './dto/cancel-tutoring.dto';
 import { RescheduleTutoringDto } from './dto/reschedule-tutoring.dto';
+import { AvailableSlotsQueryDto } from './dto/available-slots-query.dto';
 import { UserRole } from '../common/enums/user-role.enum';
 
 type Authed = Request & {
@@ -28,6 +30,14 @@ export class TutoringsController {
   @Get('queue/unassigned')
   queueUnassigned(@Req() req: Authed) {
     return this.tutoringsService.listUnassignedQueue(req.user.id, req.user.role);
+  }
+
+  @Get('available-slots')
+  availableSlots(@Req() req: Authed, @Query() query: AvailableSlotsQueryDto) {
+    return this.tutoringsService.listAvailableSlotsForStudent(
+      req.user.role,
+      query,
+    );
   }
 
   @Get()

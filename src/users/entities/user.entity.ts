@@ -41,6 +41,13 @@ export class User {
   @Column({ name: 'virtual_meeting_url', type: 'varchar', length: 512, nullable: true })
   virtualMeetingUrl: string | null;
 
+  /** Número WhatsApp (ej. 3001234567 o +573001234567). */
+  @Column({ name: 'whatsapp_phone', type: 'varchar', length: 20, nullable: true })
+  whatsappPhone: string | null;
+
+  @Column({ name: 'whatsapp_notify_enabled', default: true })
+  whatsappNotifyEnabled: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
